@@ -1,0 +1,21 @@
+{
+  "name": "powercmsx-typescript",
+  "version": "0.1.0",
+  "description": "",
+  "main": "index.js",
+  "bin": {
+    "powercmsx-typescript": "index.js"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Hideki Abe",
+  "license": "MIT",
+  "type": "module",
+  "dependencies": {
+    "commander": "^12.1.0",
+    "dotenv": "^16.4.5",
+    "pt-restful-api-client": "github:alfasado/pt-restful-api-client#main",
+    "uppercamelcase": "^3.0.0"
+  }
+}
