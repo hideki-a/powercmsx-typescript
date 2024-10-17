@@ -9,11 +9,9 @@ export default class APIClient {
         const response = await this.client.getScheme(model, this.token, 0);
         if (response.status === 403) {
             const json = await response.json();
-            console.error("An error has occurred: " + json.message);
-            reject();
+            throw new Error("An error has occurred: " + json.message);
         } else if (response.status !== 200) {
-            console.error('An error has occurred.');
-            reject();
+            throw new Error('An error has occurred.');
         }
 
         const json = await response.json();

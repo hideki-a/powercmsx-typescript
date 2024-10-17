@@ -38,3 +38,15 @@ export type DateType = {
 // export type UUIDType = {
 //   uuid: string;
 // }
+
+export type Meta = {
+  type: string | null;
+  name: string | null;
+  key: string | null;
+  kind: string;
+  value: string | null;
+  text?: string | null;
+  number: string | null;
+  field_basename?: string | null;
+  json?: unknown;
+}

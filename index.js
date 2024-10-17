@@ -1,10 +1,15 @@
 #!/usr/bin/env node
 import 'dotenv/config';
 import fs from 'fs';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
 import { program } from 'commander';
 import uppercamelcase from 'uppercamelcase';
 import APIClient from './api_client.js';
 import { auditTypeCols, revisionTypeCols, statusTypeCols, dateTypeCols } from './management_cols.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 // 引数の処理
 let model;
@@ -113,29 +118,28 @@ async function generateDefinition(writeStream, model, outputCols = null, isRelat
     for (const column in columns) {
         if (isRelationSomeColumn) {
             writeData(column, columns);
-        } else if (outputCols) {
-            if (outputCols.includes(column)) {
-                if (columns[column].type === 'int') {
-                    if (isSingleSelectionRelation(column, editProperties)) {
-                        relationModels.push(editProperties[column].split(':')[1]);
-                        writeData(column, columns, true);
-                    } else {
-                        writeData(column, columns);
+        } else {
+            if (!outputCols) {
+                const foundType = typeMappings.find(({ cols }) => cols.includes(column));
+                if (foundType) {
+                    // AuditType等既に定義があるもの
+                    if (!managementTypes.includes(foundType.type)) {
+                        managementTypes.push(foundType.type);
+                        continue;
                     }
-                } else if (columns[column].type === 'relation') {
-                    relationModels.push(relations[column]);
-                    writeData(column, columns, true);
+                }
+            }
+
+            if (columns[column].type === 'int') {
+                if (isSingleSelectionRelation(column, editProperties)) {
+                    relationModels.push(editProperties[column].split(':')[1]);
+                    writeData(column, columns, Boolean(outputCols));
                 } else {
                     writeData(column, columns);
                 }
-            }
-        } else {
-            const foundType = typeMappings.find(({ cols }) => cols.includes(column));
-            if (foundType) {
-                // AuditType等既に定義があるもの
-                if (!managementTypes.includes(foundType.type)) {
-                    managementTypes.push(foundType.type);
-                }
+            } else if (columns[column].type === 'relation') {
+                relationModels.push(relations[column]);
+                writeData(column, columns, Boolean(outputCols));
             } else {
                 writeData(column, columns);
             }
@@ -143,6 +147,10 @@ async function generateDefinition(writeStream, model, outputCols = null, isRelat
     }
 
     writeStream.write("  Permalink?: string;\n");
+    writeStream.write("  Meta?: Meta[];\n");
+    if (!isRelationSomeColumn && (!outputCols || outputCols.includes('Fields'))) {
+        writeStream.write("  Fields?: Meta[];\n");
+    }
     if (scheme.hierarchy) {
         writeStream.write("  Path: string;\n");
     }
@@ -200,9 +208,13 @@ if (existFile(fileName)) {
 }
 const relationModels = await writeDefinition(fileName, model, outputCols);
 
-if (relationModels.length) {
+if (outputCols && relationModels.length) {
     for (const model of relationModels) {
         await writeDefinition(fileName, model, null, true);
     };
+} else if (relationModels.length) {
+    console.log('Relation model found: ' + relationModels.join(', '));
 }
+
+fs.copyFileSync(__dirname + '/cms_types.ts', process.cwd() + '/cms_types.ts');
 
